@@ -14,6 +14,7 @@ import { announcements } from '@/store/server/announcements'
 import { spoolman } from '@/store/server/spoolman'
 import { spoolTracker } from '@/store/server/spoolTracker'
 import { activity } from '@/store/server/activity'
+import { spoolStation } from '@/store/server/spoolStation'
 
 // create getDefaultState
 export const getDefaultState = (): ServerState => {
@@ -67,5 +68,6 @@ export const server: Module<ServerState, any> = {
         spoolman,
         spoolTracker,
         activity,
+        spoolStation,
     },
 }

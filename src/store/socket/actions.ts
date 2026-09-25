@@ -146,6 +146,10 @@ export const actions: ActionTree<SocketState, RootState> = {
                 dispatch('server/spoolTracker/handleFilamentChange', payload.params[0], { root: true })
                 break
 
+            case 'notify_spool_station_status':
+                dispatch('server/spoolStation/onStatusNotification', payload.params[0], { root: true })
+                break
+
             case 'notify_fleet_files_changed':
                 dispatch('fleet/onFilesChanged', payload.params[0], { root: true })
                 break

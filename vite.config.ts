@@ -15,8 +15,8 @@ const PWAConfig: Partial<VitePWAOptions> = {
     registerType: 'autoUpdate',
     includeAssets: ['fonts/**/*.woff2', 'img/**/*.svg', 'img/**/*.png'],
     manifest: {
-        name: 'Pantheon-HS3',
-        short_name: 'Pantheon',
+        name: 'Spool Station',
+        short_name: 'Spool Station',
         theme_color: '#95d1b0',
         background_color: '#121212',
         icons: [

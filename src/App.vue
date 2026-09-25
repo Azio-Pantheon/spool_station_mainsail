@@ -1,138 +1,50 @@
 <template>
     <v-app :style="cssVars">
         <template v-if="socketIsConnected && guiIsReady">
-            <the-sidebar />
-            <the-topbar />
-            <v-main id="content" :style="mainStyle">
-                <v-container id="page-container" fluid :class="containerClasses">
-                    <router-view />
-                </v-container>
-            </v-main>
+            <spool-station-page />
             <the-service-worker />
-            <the-update-dialog />
-            <the-editor />
-            <the-timelapse-rendering-snackbar />
-            <the-fullscreen-upload />
-            <the-upload-snackbar />
-            <the-manual-probe-dialog />
-            <the-bed-screws-dialog />
-            <the-screws-tilt-adjust-dialog />
-            <the-macro-prompt />
         </template>
-        <the-select-printer-dialog v-else-if="instancesDB !== 'moonraker'" />
         <the-connecting-dialog v-else />
     </v-app>
 </template>
 
 <script lang="ts">
 import Component from 'vue-class-component'
-import TheSidebar from '@/components/TheSidebar.vue'
-import BaseMixin from '@/components/mixins/base'
-import ThemeMixin from './components/mixins/theme'
-import TheTopbar from '@/components/TheTopbar.vue'
 import { Mixins, Watch } from 'vue-property-decorator'
-import TheUpdateDialog from '@/components/TheUpdateDialog.vue'
+import BaseMixin from '@/components/mixins/base'
 import TheConnectingDialog from '@/components/TheConnectingDialog.vue'
-import TheSelectPrinterDialog from '@/components/TheSelectPrinterDialog.vue'
-import TheEditor from '@/components/TheEditor.vue'
+import TheServiceWorker from '@/components/TheServiceWorker.vue'
+import SpoolStationPage from '@/components/SpoolStationPage.vue'
 import { panelToolbarHeight, topbarHeight, navigationItemHeight } from '@/store/variables'
-import TheTimelapseRenderingSnackbar from '@/components/TheTimelapseRenderingSnackbar.vue'
-import TheFullscreenUpload from '@/components/TheFullscreenUpload.vue'
-import TheUploadSnackbar from '@/components/TheUploadSnackbar.vue'
-import TheManualProbeDialog from '@/components/dialogs/TheManualProbeDialog.vue'
-import TheBedScrewsDialog from '@/components/dialogs/TheBedScrewsDialog.vue'
-import TheScrewsTiltAdjustDialog from '@/components/dialogs/TheScrewsTiltAdjustDialog.vue'
 import { setAndLoadLocale } from './plugins/i18n'
-import TheMacroPrompt from '@/components/dialogs/TheMacroPrompt.vue'
-import { AppRoute } from '@/routes'
 
 Component.registerHooks(['metaInfo'])
 
 @Component({
     components: {
-        TheMacroPrompt,
-        TheTimelapseRenderingSnackbar,
-        TheEditor,
-        TheSelectPrinterDialog,
         TheConnectingDialog,
-        TheUpdateDialog,
-        TheTopbar,
-        TheSidebar,
-        TheFullscreenUpload,
-        TheUploadSnackbar,
-        TheManualProbeDialog,
-        TheBedScrewsDialog,
-        TheScrewsTiltAdjustDialog,
+        TheServiceWorker,
+        SpoolStationPage,
     },
 })
-export default class App extends Mixins(BaseMixin, ThemeMixin) {
+export default class App extends Mixins(BaseMixin) {
     public metaInfo(): any {
-        let title = this.$store.getters['getTitle']
-
-        if (this.isPrinterPowerOff) title = this.$t('App.Titles.PrinterOff')
-
         return {
-            title,
+            title: 'Spool Station',
             titleTemplate: '%s',
         }
-    }
-
-    get title(): string {
-        return this.$store.getters['getTitle']
-    }
-
-    get mainBackground(): string {
-        return this.$store.getters['files/getMainBackground']
-    }
-
-    get naviDrawer(): boolean {
-        return this.$store.state.naviDrawer
-    }
-
-    get navigationStyle() {
-        return this.$store.state.gui.uiSettings.navigationStyle
-    }
-
-    get mainStyle() {
-        let style: any = {
-            paddingLeft: '0',
-        }
-
-        if (this.mainBackground !== null) {
-            style.backgroundImage = 'url(' + this.mainBackground + ')'
-        }
-
-        // overwrite padding left for the sidebar
-        if (this.naviDrawer && !this.$vuetify.breakpoint.mdAndDown) {
-            if (this.navigationStyle === 'iconsAndText') style.paddingLeft = '220px'
-            if (this.navigationStyle === 'iconsOnly') style.paddingLeft = '56px'
-        }
-
-        return style
     }
 
     get customStylesheet() {
         return this.$store.getters['files/getCustomStylesheet']
     }
 
-    get customFavicons(): string | null {
-        return this.$store.getters['files/getCustomFavicons'] ?? null
-    }
-
     get language(): string {
         return this.$store.state.gui.general.language
     }
 
-    get current_file(): string {
-        return this.$store.state.printer.print_stats?.filename ?? ''
-    }
-
     get theme(): string {
         return this.$store.state.gui.uiSettings.theme
-    }
-
-    get logoColor(): string {
-        return this.$store.state.gui.uiSettings.logo
     }
 
     get primaryColor(): string {
@@ -169,28 +81,6 @@ export default class App extends Mixins(BaseMixin, ThemeMixin) {
         }
     }
 
-    get print_percent(): number {
-        return Math.floor(this.$store.getters['printer/getPrintPercent'] * 100)
-    }
-
-    get containerClasses() {
-        const currentRouteOptions = this.$router.options.routes?.find(
-            (route) => route.name === this.$route.name
-        ) as AppRoute
-
-        return {
-            'px-3': true,
-            'px-sm-6': true,
-            'py-sm-6': true,
-            'mx-auto': true,
-            fullscreen: currentRouteOptions?.fullscreen ?? false,
-        }
-    }
-
-    get progressAsFavicon() {
-        return this.$store.state.gui.uiSettings.progressAsFavicon
-    }
-
     @Watch('language')
     async languageChanged(newVal: string): Promise<void> {
         await setAndLoadLocale(newVal)
@@ -211,13 +101,6 @@ export default class App extends Mixins(BaseMixin, ThemeMixin) {
         } else if (style) style.remove()
     }
 
-    @Watch('current_file')
-    current_fileChanged(newVal: string): void {
-        if (newVal === '') return
-
-        this.$socket.emit('server.files.metadata', { filename: newVal }, { action: 'files/getMetadataCurrentFile' })
-    }
-
     @Watch('primaryColor')
     primaryColorChanged(newVal: string): void {
         this.$nextTick(() => {
@@ -234,116 +117,6 @@ export default class App extends Mixins(BaseMixin, ThemeMixin) {
         doc.className = dark ? 'theme--dark' : 'theme--light'
     }
 
-    drawFavicon(val: number): void {
-        const favicon16: HTMLLinkElement | null = document.querySelector("link[rel*='icon'][sizes='16x16']")
-        const favicon32: HTMLLinkElement | null = document.querySelector("link[rel*='icon'][sizes='32x32']")
-
-        if (favicon16 && favicon32) {
-            if (this.progressAsFavicon && this.printerIsPrinting) {
-                let faviconSize = 64
-
-                let canvas = document.createElement('canvas')
-                canvas.width = faviconSize
-                canvas.height = faviconSize
-                const context = canvas.getContext('2d')
-                const centerX = canvas.width / 2
-                const centerY = canvas.height / 2
-                const radius = 32
-
-                // draw the grey circle
-                if (context) {
-                    context.beginPath()
-                    context.moveTo(centerX, centerY)
-                    context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false)
-                    context.closePath()
-                    context.fillStyle = '#ddd'
-                    context.fill()
-                    context.strokeStyle = 'rgba(200, 208, 218, 0.66)'
-                    context.stroke()
-
-                    // draw the green circle based on percentage
-                    let startAngle = 1.5 * Math.PI
-                    let endAngle = 0
-                    let unitValue = (Math.PI - 0.5 * Math.PI) / 25
-                    if (val >= 0 && val <= 25) endAngle = startAngle + val * unitValue
-                    else if (val > 25 && val <= 50) endAngle = startAngle + val * unitValue
-                    else if (val > 50 && val <= 75) endAngle = startAngle + val * unitValue
-                    else if (val > 75 && val <= 100) endAngle = startAngle + val * unitValue
-
-                    context.beginPath()
-                    context.moveTo(centerX, centerY)
-                    context.arc(centerX, centerY, radius, startAngle, endAngle, false)
-                    context.closePath()
-                    context.fillStyle = this.logoColor
-                    context.fill()
-
-                    favicon16.href = canvas.toDataURL('image/png')
-                    favicon32.href = canvas.toDataURL('image/png')
-                }
-            } else if (this.customFavicons) {
-                const [favicon16Path, favicon32Path] = this.customFavicons
-                favicon16.href = favicon16Path
-                favicon32.href = favicon32Path
-            } else {
-                const favicon =
-                    'data:image/svg+xml;base64,' +
-                    window.btoa(`
-                        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 599.38 523.11" xml:space="preserve">
-                            <g>
-                                <path style="fill:${this.logoColor};" d="M282.8,85.2 L520.6,85.4 L560,0.6 L214.9,1.1 L282.8,85.2 Z"/>
-                                <path style="fill:${this.logoColor};" d="M34.5,125.4 L24,147.8 L315.3,523.1 L354.2,440.5 L111.1,125.3 L34.5,125.4 Z"/>
-                                <path style="fill:${this.logoColor};" d="M502.2,124.5 L265.9,125 L167,0.8 L90.4,0.9 L79.9,23.3 L371.2,398.6 L411.6,312.8 L331.2,209.3 L462.9,209.4 L502.2,124.5 Z"/>
-                            </g>
-                        </svg>
-                    `)
-
-                favicon16.href = favicon
-                favicon32.href = favicon
-            }
-        }
-    }
-
-
-
-    @Watch('customFavicons')
-    customFaviconsChanged(): void {
-        this.drawFavicon(this.print_percent)
-    }
-
-    @Watch('progressAsFavicon')
-    progressAsFaviconChanged(): void {
-        this.drawFavicon(this.print_percent)
-    }
-
-    @Watch('logoColor')
-    logoColorChanged(): void {
-        this.drawFavicon(this.print_percent)
-    }
-
-    @Watch('print_percent')
-    print_percentChanged(newVal: number): void {
-        this.drawFavicon(newVal)
-        this.refreshSpoolman()
-        this.refreshSpoolTracker()
-    }
-
-    @Watch('printerIsPrinting')
-    printerIsPrintingChanged(): void {
-        this.drawFavicon(this.print_percent)
-    }
-
-    refreshSpoolman(): void {
-        if (this.moonrakerComponents.includes('spoolman')) {
-            this.$store.dispatch('server/spoolman/refreshActiveSpool', null, { root: true })
-        }
-    }
-
-    refreshSpoolTracker(): void {
-        if (this.moonrakerComponents.includes('spool_tracker')) {
-            this.$store.dispatch('server/spool_tracker/refreshStatus', null, { root: true })
-        }
-    }
-
     appHeight() {
         this.$nextTick(() => {
             const doc = document.documentElement
@@ -352,7 +125,6 @@ export default class App extends Mixins(BaseMixin, ThemeMixin) {
     }
 
     mounted(): void {
-        this.drawFavicon(this.print_percent)
         this.appHeight()
         window.addEventListener('resize', this.appHeight)
         window.addEventListener('orientationchange', this.appHeight)

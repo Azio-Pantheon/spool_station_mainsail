@@ -37,6 +37,7 @@ export const initableServerComponents = [
     'spoolman',
     'spoolTracker',
     'activity',
+    'spoolStation',
 ]
 
 /*
